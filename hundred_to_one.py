@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem, QMenuBar, QFileDialog, QColorDialog, QLineEdit, QWidget
 )
 from PyQt5.QtCore import Qt, QSize
-from PyQt5 import QtGui
+from PyQt5.QtGui import QFont
 
 from openpyxl import Workbook, load_workbook
 
@@ -30,6 +30,13 @@ class AnswersTable(QTableWidget):
 
             wordItem = QTableWidgetItem(word)
             countItem = QTableWidgetItem(str(data[word]))
+
+            wordItem.setFont(QFont("Times new roman", 20))
+            wordItem.setTextAlignment(Qt.AlignCenter)
+            
+            countItem.setFont(QFont("Times new roman", 20))
+            countItem.setTextAlignment(Qt.AlignCenter)
+
             self.setItem(row, 0,  wordItem)
             self.setItem(row, 1, countItem)
 
@@ -70,12 +77,21 @@ class MainWindow(QMainWindow):
         self.showMaximized()
         self.show()
     
+    def preImportCheck(self, exel):
+        for column in "BCDEFG":
+            row = 1
+            while exel['A{}'.format(row)].value != None:
+                if type(exel['{}{}'.format(column, row)].value) != str:
+                    raise ValueError(f"Incorrect value in cell {column}{row}")
+                row += 1
+    
     def importFile(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Import answers", ".", "Exel files (*.xlsx)")
         if filename:
             #try:
             wb = load_workbook(filename)
             exel = wb.active
+            self.preImportCheck(exel)
                 
             #pageInd = 0
             for column in "BCDEFG":
