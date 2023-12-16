@@ -1,10 +1,10 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTableWidget, QHBoxLayout, QVBoxLayout, QTabWidget,
-    QTableWidgetItem, QMenuBar, QFileDialog, QColorDialog, QLineEdit, QWidget
+    QTableWidgetItem, QMenuBar, QFileDialog, QColorDialog, QLineEdit, QWidget, QPushButton
 )
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 
 from openpyxl import Workbook, load_workbook
 
@@ -21,7 +21,7 @@ class AnswersTable(QTableWidget):
         self.setColumnCount(2)
         self.setRowCount(self.row_count)
 
-        self.setColumnWidth(0, 500)
+        self.setColumnWidth(0, 733)
         self.setColumnWidth(1, 100)
 
         row = 0
@@ -33,9 +33,13 @@ class AnswersTable(QTableWidget):
 
             wordItem.setFont(QFont("Times new roman", 20))
             wordItem.setTextAlignment(Qt.AlignCenter)
+            wordItem.setFlags(Qt.ItemIsEnabled)
+            wordItem.setBackground(QColor(255,255,255))
             
             countItem.setFont(QFont("Times new roman", 20))
             countItem.setTextAlignment(Qt.AlignCenter)
+            countItem.setFlags(Qt.ItemIsEnabled)
+            countItem.setBackground(QColor(255,255,255))
 
             self.setItem(row, 0,  wordItem)
             self.setItem(row, 1, countItem)
@@ -45,6 +49,9 @@ class AnswersTable(QTableWidget):
 
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
+
+        self.cellClicked.connect(self.chooseWord)
+        self.chosenWordIndexes = []
     
     def preprocessing(self, wordList):
         wordSet = set(wordList)
@@ -53,9 +60,41 @@ class AnswersTable(QTableWidget):
             treatedWords[word] = wordList.count(word)
         
         return treatedWords
+    
+    def chooseWord(self):
+        row = self.currentRow()
+        if row not in self.chosenWordIndexes:
+            self.item(row, 0).setBackground(QColor(255,100,0))
+            self.item(row, 1).setBackground(QColor(255,100,0))
+            self.chosenWordIndexes.append(row)
+        else:
+            self.item(row, 0).setBackground(QColor(255,255,255))
+            self.item(row, 1).setBackground(QColor(255,255,255))
+            self.chosenWordIndexes.remove(row)
+        
+        print(self.chosenWordIndexes)
+
+class Page(QWidget):
+    def __init__(self, parent, data):
+        super().__init__(parent)
+        self.pageLay = QHBoxLayout(self)
+        self.setLayout(self.pageLay)
+        self.answerTable = AnswersTable(self, data)
+        self.pageLay.addWidget(self.answerTable, stretch = 2)
+        
+        self.wordForUnionLine = QLineEdit(self)
+        self.wordForUnionLine.setFont(QFont("Times new roman", 20))
+        self.btn = QPushButton(self)
+        self.rightLayout = QVBoxLayout(self)
+        self.rightLayout.addWidget(self.wordForUnionLine, stretch = 1)
+        self.rightLayout.addWidget(self.btn)
+        self.rightLayout.addWidget(QWidget(self))
+
+        self.pageLay.addLayout(self.rightLayout, stretch = 1)
+
+
 
 class MainWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle('hundred to one')
@@ -68,10 +107,6 @@ class MainWindow(QMainWindow):
         importAct.triggered.connect(self.importFile)
         
         self.pageTape = QTabWidget(self)
-        self.mainLay = QHBoxLayout()
-        self.pageTape.setLayout(self.mainLay)
-        #self.mainLay.addWidget(QLineEdit(self))
-        #self.mainLay.addWidget(QLineEdit(self))
         self.setCentralWidget(self.pageTape)
 
         self.showMaximized()
@@ -100,7 +135,8 @@ class MainWindow(QMainWindow):
                 while exel['A{}'.format(row)].value != None:
                     data.append(exel['{}{}'.format(column, row)].value.strip())
                     row += 1
-                self.pageTape.addTab(AnswersTable(self.pageTape, data), exel['{}1'.format(column)].value)
+                
+                self.pageTape.addTab(Page(self.pageTape, data), exel['{}1'.format(column)].value)
             #self.answerTable = AnswersTable(self, wb.active)
             wb.close()
             #except:
